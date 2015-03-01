@@ -2650,8 +2650,8 @@ exports = module.exports = HTML;
 
 var statsTemplate = '<ul id="mocha-stats">'
   + '<li class="progress"><canvas width="40" height="40"></canvas></li>'
-  + '<li class="passes"><a href="#">passes:</a> <em>0</em></li>'
-  + '<li class="failures"><a href="#">failures:</a> <em>0</em></li>'
+  + '<li class="passes"><a href="javascript://">passes:</a> <em>0</em></li>'
+  + '<li class="failures"><a href="javascript://">failures:</a> <em>0</em></li>'
   + '<li class="duration">duration: <em>0</em>s</li>'
   + '</ul>';
 
@@ -2735,7 +2735,7 @@ function HTML(runner) {
   });
 
   runner.on('fail', function(test, err){
-    if ('hook' == test.type) runner.emit('test end', test);
+    if ('hook' == test.type || test.wasAlreadyDone) runner.emit('test end', test);
   });
 
   runner.on('test end', function(test){
@@ -4753,6 +4753,7 @@ Runner.prototype.checkGlobals = function(test){
 
 Runner.prototype.fail = function(test, err){
   ++this.failures;
+  test.wasAlreadyDone = !!test.state;
   test.state = 'failed';
 
   if ('string' == typeof err) {
@@ -5127,12 +5128,11 @@ Runner.prototype.uncaught = function(err){
   var runnable = this.currentRunnable;
   if (!runnable) return;
 
-  var wasAlreadyDone = runnable.state;
   this.fail(runnable, err);
 
   runnable.clearTimeout();
 
-  if (wasAlreadyDone) return;
+  if (runnable.wasAlreadyDone) return;
 
   // recover from test
   if ('test' == runnable.type) {
